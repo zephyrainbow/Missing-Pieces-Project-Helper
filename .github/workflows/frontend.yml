@@ -40,7 +40,7 @@ jobs:
       - if: steps.detect-frontend.outputs.exists == 'true'
         run: |
           cd frontend
-          npm test -- --watch=false
+          npm test
       - if: steps.detect-frontend.outputs.exists == 'true'
         run: |
           cd frontend
