@@ -1,0 +1,234 @@
+openapi: 3.0.3
+info:
+  title: Missing Pieces API
+  version: 1.0.0
+  description: API for listed-building photo auditing and uploads.
+servers:
+  - url: /api
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: Service healthy
+
+  /buildings:
+    get:
+      summary: List buildings with urgency status
+      parameters:
+        - in: query
+          name: bbox
+          schema:
+            type: string
+          description: minLon,minLat,maxLon,maxLat in WGS84 decimal degrees (EPSG:4326).
+        - in: query
+          name: urgency
+          schema:
+            type: string
+            enum: [RED, YELLOW, GREEN]
+        - in: query
+          name: minYearsWithoutPhoto
+          schema:
+            type: integer
+            minimum: 0
+          description: Only return buildings with at least this many whole years since last photo.
+      responses:
+        '200':
+          description: GeoJSON FeatureCollection of buildings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BuildingFeatureCollection'
+
+  /buildings/{buildingId}:
+    get:
+      summary: Get a single building detail
+      parameters:
+        - in: path
+          name: buildingId
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Building metadata and current status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BuildingDetail'
+        '404':
+          description: Not found
+
+  /buildings/{buildingId}/photos:
+    get:
+      summary: List uploaded photos for a building
+      parameters:
+        - in: path
+          name: buildingId
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Timeline of photos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BuildingPhoto'
+
+    post:
+      summary: Upload a photo for a building
+      description: |
+        Backend should parse EXIF GPS and verify capture position is within a configured
+        distance tolerance (for example: UploadValidation:MaxDistanceMeters)
+        of building geometry before accepting submission.
+        Requests outside tolerance should be rejected with HTTP 400.
+      parameters:
+        - in: path
+          name: buildingId
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                uploaderName:
+                  type: string
+      responses:
+        '201':
+          description: Photo accepted and stored
+        '400':
+          description: Validation failed (including GPS mismatch)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '404':
+          description: Building not found
+
+components:
+  schemas:
+    BuildingFeatureCollection:
+      type: object
+      required: [type, features]
+      properties:
+        type:
+          type: string
+          enum: [FeatureCollection]
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/BuildingFeature'
+    BuildingFeature:
+      type: object
+      required: [type, geometry, properties]
+      properties:
+        type:
+          type: string
+          enum: [Feature]
+        geometry:
+          type: object
+          description: GeoJSON geometry in EPSG:4326.
+        properties:
+          type: object
+          required: [building_id, name, grade, urgency_status]
+          properties:
+            building_id:
+              type: integer
+              format: int64
+            name:
+              type: string
+            grade:
+              type: string
+              enum: [I, II*, II]
+            urgency_status:
+              type: string
+              enum: [RED, YELLOW, GREEN]
+            last_photo_uploaded_date:
+              type: string
+              format: date-time
+              nullable: true
+    BuildingDetail:
+      type: object
+      required: [building_id, name, grade, geom, urgency_status]
+      properties:
+        building_id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        grade:
+          type: string
+          enum: [I, II*, II]
+        geom:
+          type: object
+          description: GeoJSON geometry in EPSG:4326.
+        urgency_status:
+          type: string
+          enum: [RED, YELLOW, GREEN]
+        last_photo_uploaded_date:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    BuildingPhoto:
+      type: object
+      required: [photo_id, building_id, uploaded_at, image_url, metadata]
+      properties:
+        photo_id:
+          type: integer
+          format: int64
+        building_id:
+          type: integer
+          format: int64
+        uploaded_at:
+          type: string
+          format: date-time
+        image_url:
+          type: string
+          format: uri
+        exif_latitude:
+          type: number
+          format: double
+          nullable: true
+        exif_longitude:
+          type: number
+          format: double
+          nullable: true
+        exif_captured_at:
+          type: string
+          format: date-time
+          nullable: true
+        uploaded_by:
+          type: string
+          nullable: true
+        metadata:
+          type: object
+    ValidationError:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          enum: [exif-gps-missing, gps-out-of-tolerance, invalid-file-format]
+        message:
+          type: string
