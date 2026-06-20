@@ -229,6 +229,6 @@ components:
       properties:
         code:
           type: string
-          enum: [missing_exif_gps, gps_out_of_tolerance, invalid_file_format]
+          enum: [missing-exif-gps, gps-out-of-tolerance, invalid-file-format]
         message:
           type: string
