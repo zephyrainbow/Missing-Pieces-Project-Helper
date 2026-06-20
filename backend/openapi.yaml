@@ -1,0 +1,100 @@
+openapi: 3.0.3
+info:
+  title: Missing Pieces API
+  version: 1.0.0
+  description: API for listed-building photo auditing and uploads.
+servers:
+  - url: /api
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: Service healthy
+
+  /buildings:
+    get:
+      summary: List buildings with urgency status
+      parameters:
+        - in: query
+          name: bbox
+          schema:
+            type: string
+          description: minLon,minLat,maxLon,maxLat
+        - in: query
+          name: urgency
+          schema:
+            type: string
+            enum: [RED, YELLOW, GREEN]
+        - in: query
+          name: minYearsSincePhoto
+          schema:
+            type: number
+            format: float
+      responses:
+        '200':
+          description: GeoJSON FeatureCollection of buildings
+
+  /buildings/{buildingId}:
+    get:
+      summary: Get a single building detail
+      parameters:
+        - in: path
+          name: buildingId
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Building metadata and current status
+        '404':
+          description: Not found
+
+  /buildings/{buildingId}/photos:
+    get:
+      summary: List uploaded photos for a building
+      parameters:
+        - in: path
+          name: buildingId
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Timeline of photos
+
+    post:
+      summary: Upload a photo for a building
+      description: |
+        Backend should parse EXIF GPS and verify capture position is within a configured
+        distance of building geometry before accepting submission.
+      parameters:
+        - in: path
+          name: buildingId
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                uploaderName:
+                  type: string
+      responses:
+        '201':
+          description: Photo accepted and stored
+        '400':
+          description: Validation failed (including GPS mismatch)
+        '404':
+          description: Building not found
