@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS building_photos (
     exif_longitude DOUBLE PRECISION NULL,
     exif_captured_at TIMESTAMPTZ NULL,
     uploaded_by TEXT NULL,
+    -- Arbitrary extracted/user metadata (e.g., camera model, dimensions, optional notes).
     metadata JSONB NOT NULL DEFAULT '{}'::jsonb
 );
 

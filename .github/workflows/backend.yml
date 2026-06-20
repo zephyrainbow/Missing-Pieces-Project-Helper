@@ -25,27 +25,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - id: detect-backend
-        run: |
-          if find backend -type f \( -name '*.sln' -o -name '*.csproj' \) | grep -q .; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "::notice::Skipping backend build/test because no .sln or .csproj was found under backend/."
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-          fi
+      - if: ${{ hashFiles('backend/*.sln', 'backend/**/*.csproj') == '' }}
+        run: echo "::notice::Skipping backend build/test because no .sln or .csproj was found under backend/."
       - uses: actions/setup-dotnet@v4
-        if: steps.detect-backend.outputs.exists == 'true'
+        if: ${{ hashFiles('backend/*.sln', 'backend/**/*.csproj') != '' }}
         with:
           dotnet-version: '8.0.x'
-      - if: steps.detect-backend.outputs.exists == 'true'
+      - if: ${{ hashFiles('backend/*.sln', 'backend/**/*.csproj') != '' }}
         run: |
           cd backend
           dotnet restore
-      - if: steps.detect-backend.outputs.exists == 'true'
+      - if: ${{ hashFiles('backend/*.sln', 'backend/**/*.csproj') != '' }}
         run: |
           cd backend
           dotnet build --configuration Release --no-restore
-      - if: steps.detect-backend.outputs.exists == 'true'
+      - if: ${{ hashFiles('backend/*.sln', 'backend/**/*.csproj') != '' }}
         run: |
           cd backend
           dotnet test --configuration Release --no-build

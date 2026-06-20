@@ -71,7 +71,7 @@ paths:
       summary: Upload a photo for a building
       description: |
         Backend should parse EXIF GPS and verify capture position is within a configured
-        distance tolerance (for example 100 meters) of building geometry before accepting submission.
+        distance tolerance (for example 100 meters, configured by server policy) of building geometry before accepting submission.
         Requests outside tolerance should be rejected with HTTP 400.
       parameters:
         - in: path
@@ -98,5 +98,21 @@ paths:
           description: Photo accepted and stored
         '400':
           description: Validation failed (including GPS mismatch)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
         '404':
           description: Building not found
+
+components:
+  schemas:
+    ValidationError:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          enum: [missing_exif_gps, gps_out_of_tolerance, invalid_file_format]
+        message:
+          type: string
