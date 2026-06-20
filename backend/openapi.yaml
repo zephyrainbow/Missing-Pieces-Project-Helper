@@ -30,8 +30,9 @@ paths:
         - in: query
           name: minYearsWithoutPhoto
           schema:
-            type: number
-            format: float
+            type: integer
+            minimum: 0
+          description: Only return buildings with at least this many whole years since last photo.
       responses:
         '200':
           description: GeoJSON FeatureCollection of buildings
@@ -70,7 +71,8 @@ paths:
       summary: Upload a photo for a building
       description: |
         Backend should parse EXIF GPS and verify capture position is within a configured
-        distance of building geometry before accepting submission.
+        distance tolerance (for example 100 meters) of building geometry before accepting submission.
+        Requests outside tolerance should be rejected with HTTP 400.
       parameters:
         - in: path
           name: buildingId

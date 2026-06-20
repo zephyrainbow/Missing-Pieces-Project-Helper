@@ -1,9 +1,16 @@
 CREATE EXTENSION IF NOT EXISTS postgis;
 
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'building_grade') THEN
+        CREATE TYPE building_grade AS ENUM ('I', 'II*', 'II');
+    END IF;
+END $$;
+
 CREATE TABLE IF NOT EXISTS listed_buildings (
     building_id BIGINT PRIMARY KEY,
     name TEXT NOT NULL,
-    grade TEXT NOT NULL CHECK (grade IN ('I', 'II*', 'II')),
+    grade building_grade NOT NULL,
     geom geometry(GEOMETRY, 4326) NOT NULL,
     last_photo_uploaded_date TIMESTAMPTZ NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -48,8 +55,8 @@ CREATE OR REPLACE FUNCTION sync_last_photo_uploaded_date()
 RETURNS TRIGGER AS $$
 BEGIN
     UPDATE listed_buildings
-    SET last_photo_uploaded_date = GREATEST(
-        COALESCE(last_photo_uploaded_date, NEW.uploaded_at),
+    SET last_photo_uploaded_date = COALESCE(
+        GREATEST(last_photo_uploaded_date, NEW.uploaded_at),
         NEW.uploaded_at
     ),
     updated_at = NOW()
