@@ -8,7 +8,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var connectionString = builder.Configuration.GetConnectionString("MissingPieces")
-    ?? "Host=localhost;Port=5432;Database=missingpieces;Username=postgres";
+    ?? "Host=localhost;Port=5432;Database=missingpieces;Username=postgres;******";
 
 builder.Services.AddDbContext<MissingPiecesDbContext>(options =>
     options.UseNpgsql(connectionString));
