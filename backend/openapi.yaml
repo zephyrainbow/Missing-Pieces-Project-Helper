@@ -28,7 +28,7 @@ paths:
             type: string
             enum: [RED, YELLOW, GREEN]
         - in: query
-          name: minYearsSincePhoto
+          name: minYearsWithoutPhoto
           schema:
             type: number
             format: float

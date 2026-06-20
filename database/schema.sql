@@ -49,7 +49,7 @@ RETURNS TRIGGER AS $$
 BEGIN
     UPDATE listed_buildings
     SET last_photo_uploaded_date = GREATEST(
-        COALESCE(last_photo_uploaded_date, '-infinity'::timestamptz),
+        COALESCE(last_photo_uploaded_date, NEW.uploaded_at),
         NEW.uploaded_at
     ),
     updated_at = NOW()

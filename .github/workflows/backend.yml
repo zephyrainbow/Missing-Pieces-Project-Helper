@@ -17,21 +17,38 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}/missing-pieces-api
 
+permissions:
+  contents: read
+
 jobs:
   build-test:
-    if: ${{ hashFiles('backend/*.sln', 'backend/**/*.csproj') != '' }}
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
     steps:
       - uses: actions/checkout@v4
+      - id: detect-backend
+        run: |
+          if find backend -type f \( -name '*.sln' -o -name '*.csproj' \) | grep -q .; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Skipping backend build/test because no .sln or .csproj was found under backend/."
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/setup-dotnet@v4
+        if: steps.detect-backend.outputs.exists == 'true'
         with:
           dotnet-version: '8.0.x'
-      - run: dotnet restore
-      - run: dotnet build --configuration Release --no-restore
-      - run: dotnet test --configuration Release --no-build
+      - if: steps.detect-backend.outputs.exists == 'true'
+        run: |
+          cd backend
+          dotnet restore
+      - if: steps.detect-backend.outputs.exists == 'true'
+        run: |
+          cd backend
+          dotnet build --configuration Release --no-restore
+      - if: steps.detect-backend.outputs.exists == 'true'
+        run: |
+          cd backend
+          dotnet test --configuration Release --no-build
 
   docker:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && hashFiles('backend/Dockerfile') != ''
